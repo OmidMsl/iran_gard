@@ -1,3 +1,0 @@
-android apk
-web html
-linux bundle
