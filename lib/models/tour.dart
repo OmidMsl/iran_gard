@@ -12,8 +12,10 @@ class Tour {
   List<Category> categories;
   int capasity, registered, price;
   List<Image> images;
+  List<String> imgNames;
   String channelName, leaderName;
-  AssetImage channelImage;
+  Image channelImage;
+  String channelImageName;
   bool isRegistered;
   String necessaryStuff;
   int imageNumber = 0;
@@ -32,10 +34,12 @@ class Tour {
       this.capasity,
       this.registered,
       this.images,
+      this.imgNames,
       this.date,
       this.leaderName,
       this.channelName,
       this.channelImage,
+      this.channelImageName,
       this.duration,
       this.isRegistered,
       this.price,

@@ -1,6 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart';
+import 'package:iran_gard/models/category.dart';
+import 'package:iran_gard/models/tour.dart';
+import 'package:iran_gard/pages/categories.dart';
 import 'package:iran_gard/pages/chats.dart';
 import 'package:iran_gard/pages/home.dart';
 import 'package:iran_gard/iran_gard_icons_icons.dart';
@@ -9,6 +16,7 @@ import 'package:iran_gard/pages/profile.dart';
 import 'package:iran_gard/pages/search.dart';
 import 'package:iran_gard/pages/tours.dart';
 import 'package:iran_gard/widgets/bottom_nav_bar.dart';
+import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 
 void main() {
   runApp(MyApp());
@@ -70,10 +78,8 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   List<String> pageTitles = ['پروفایل', 'گفتگو ها', 'تور های من', 'خانه'];
 
-  HomePage home = HomePage();
-  ToursPage tours = ToursPage();
-  ChatsPage chats = ChatsPage();
-  ProfilePage profile = ProfilePage();
+  List<Tour> tours = [];
+  List<User> users = [];
 
   int _pageNumber = 3;
   bool _isFabExtended = true;
@@ -97,6 +103,8 @@ class _MainPageState extends State<MainPage> {
 
         flag = upDirection;
       });
+    getTours();
+    getUsers();
   }
 
   @override
@@ -118,18 +126,18 @@ class _MainPageState extends State<MainPage> {
           IconButton(
               icon: Icon(Icons.search_rounded, color: Color(0xFF232226)),
               onPressed: () {
-                Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => SearchPage()));
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => SearchPage(tours, users)));
               })
         ],
       ),
       body: _pageNumber == 3
-          ? home
+          ? HomePage(tours)
           : _pageNumber == 2
-              ? tours
+              ? ToursPage(tours)
               : _pageNumber == 1
-                  ? chats
-                  : profile,
+                  ? ChatsPage()
+                  : ProfilePage(),
       bottomNavigationBar: CurvedNavigationBar(
         backgroundColor: Colors.transparent,
         height: 60,
@@ -181,8 +189,14 @@ class _MainPageState extends State<MainPage> {
             visible: _pageNumber == 2,
             child: FloatingActionButton.extended(
               onPressed: () {
-                Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => NewTourPage()));
+                Navigator.of(context)
+                    .push(
+                        MaterialPageRoute(builder: (context) => NewTourPage()))
+                    .then((value) {
+                  setState(() {
+                    tours.add(value);
+                  });
+                });
               },
               backgroundColor: Color(0xFF001FAB),
               isExtended: _isFabExtended,
@@ -202,5 +216,113 @@ class _MainPageState extends State<MainPage> {
             ),
           )),
     );
+  }
+
+  void getTours() async {
+    Response response =
+        await get(Uri.parse("http://irangard.freehost.io/getTours.php"));
+    String data = utf8.decode(response.bodyBytes);
+    print('data: ' + data);
+    if (!data.contains('error')) {
+      var tourJson = json.decode(data);
+      for (var tj in tourJson) {
+        List<String> startLoc = (tj['startLocation']).split('lt');
+        List<String> destLoc = (tj['destination']).split('lt');
+        List<Category> cats = [];
+        List<String> ctstr = (tj['categories']).split(',');
+        for (String s in ctstr) {
+          for (Category c in categories) {
+            if (c.name == s) {
+              cats.add(c);
+            }
+          }
+        }
+        List<String> imgNames = tj['images'].split(',');
+        imgNames.remove('');
+        List<String> datestr = (tj['date']).split(' ');
+        List<String> letstr = (tj['lastEventTime']).split(' ');
+        List<String> durstr = (tj['duration']).split(' ');
+
+        Tour t = Tour(
+            id: int.parse(tj['id']),
+            title: tj['title'],
+            subtitle: tj['subtitle'],
+            startLocation: LocationWithTitle(
+                title: startLoc[0],
+                latlng: LatLng(
+                    double.parse(startLoc[1]), double.parse(startLoc[2]))),
+            destination: LocationWithTitle(
+                title: destLoc[0],
+                latlng:
+                    LatLng(double.parse(destLoc[1]), double.parse(destLoc[2]))),
+            categories: cats,
+            capasity: int.parse(tj['capasity']),
+            registered: int.parse(tj['registered']),
+            price: int.parse(tj['price']),
+            imgNames: imgNames,
+            channelName: tj['channelName'],
+            channelImageName: tj['channelImage'],
+            isRegistered: tj['isRegistered'] == '1',
+            necessaryStuff: tj['necessaryStuff'],
+            lastEvent: tj['lastEvent'],
+            date: Jalali(
+                int.parse(datestr[0]),
+                int.parse(datestr[1]),
+                int.parse(datestr[2]),
+                int.parse(datestr[3]),
+                int.parse(datestr[4])),
+            lastEventTime: Jalali(
+                int.parse(letstr[0]),
+                int.parse(letstr[1]),
+                int.parse(letstr[2]),
+                int.parse(letstr[3]),
+                int.parse(letstr[4])),
+            numberOfNewEvents: int.parse(tj['numberOfNewEvents']),
+            duration: DayAndHour(
+                day: int.parse(durstr[0]), hour: int.parse(durstr[1])));
+        setState(() {
+          tours.add(t);
+        });
+      }
+      getFirstImages();
+    }
+  }
+
+  void getFirstImages() async {
+    for (Tour t in tours) {
+      if (t.images == null || t.images.isEmpty) {
+        t.images = [];
+
+        setState(() {
+          t.images.add(Image.network(
+              'http://irangard.freehost.io/pics/' + t.imgNames[0],
+              fit: BoxFit.cover));
+        });
+      }
+    }
+  }
+
+  void getUsers() async {
+    Response response =
+        await get(Uri.parse("http://irangard.freehost.io/getUsers.php"));
+    String data = utf8.decode(response.bodyBytes);
+    print('data: ' + data);
+    if (!data.contains('error')) {
+      var userJson = json.decode(data);
+      for (var uj in userJson) {
+        User u = User(
+          id: uj['id'],
+          name: uj['name'],
+          isLeader: uj['isLeader'] == '1',
+          image: uj['image'] == null
+              ? null
+              : Image.network('http://irangard.freehost.io/pics/' + uj['image'],
+                  fit: BoxFit.cover),
+        );
+        setState(() {
+          users.add(u);
+        });
+      }
+    }
   }
 }

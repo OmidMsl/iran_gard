@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:iran_gard/iran_gard_icons_icons.dart';
 import 'package:iran_gard/models/category.dart';
@@ -13,8 +15,10 @@ import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 
 Tour tour = Tour(
     title: 'تور طبیعت گردی دریاچه سد دز',
-    startLocation: LocationWithTitle(title: 'دزفول'),
-    destination: LocationWithTitle(title: 'دریاچه پامنار'),
+    startLocation:
+        LocationWithTitle(title: 'دزفول', latlng: LatLng(32.378150, 48.418570)),
+    destination: LocationWithTitle(
+        title: 'دریاچه پامنار', latlng: LatLng(32.378281, 48.418499)),
     capasity: 30,
     registered: 0,
     categories: [
@@ -22,19 +26,17 @@ Tour tour = Tour(
           name: 'طبیعت گردی', icon: IranGardIcons.nature, color: Colors.green)
     ],
     subtitle: 'لوازم ضروری: شام و ناهار\nمدت زمان: 8 ساعت',
-    images: [
-      Image.asset('images/shahyoun_1.jpg', fit: BoxFit.cover),
-      Image.asset('images/shahyoun_2.jpg', fit: BoxFit.cover),
-      Image.asset('images/shahyoun_3.jpg', fit: BoxFit.cover),
-    ],
+    images: [],
     date: Jalali(1400, 7, 20, 12, 30),
     channelName: 'dezful tourism',
-    channelImage: AssetImage('images/dezful_tourism.jpg'),
+    channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
     duration: DayAndHour(hour: 8),
     isRegistered: false,
     leaderName: 'رضا',
     price: 150000,
     necessaryStuff: 'کفش مناسب');
+
+List<String> base64Images = [];
 
 class NewTourPage extends StatefulWidget {
   const NewTourPage({Key key}) : super(key: key);
@@ -530,6 +532,9 @@ class _NewTourPageState extends State<NewTourPage> {
                       tour.images.insert(
                           (oldIndex > newIndex ? newIndex : newIndex - 1), oi);
                     });
+                    String oi = base64Images.removeAt(oldIndex);
+                    base64Images.insert(
+                        (oldIndex > newIndex ? newIndex : newIndex - 1), oi);
                   },
                   header: Padding(
                     padding: const EdgeInsets.only(left: 6.0),
@@ -551,7 +556,9 @@ class _NewTourPageState extends State<NewTourPage> {
                         ImagePicker()
                             .pickImage(source: ImageSource.gallery)
                             .then((xFile) {
-                          File(xFile.path).readAsBytes().then((bytes) {
+                          File f = File(xFile.path);
+                          base64Images.add(base64Encode(f.readAsBytesSync()));
+                          f.readAsBytes().then((bytes) {
                             setState(() {
                               tour.images.add(Image.memory(bytes));
                             });
@@ -985,7 +992,9 @@ class _NewTourPageState extends State<NewTourPage> {
       floatingActionButton: AnimatedContainer(
           duration: Duration(),
           child: FloatingActionButton.extended(
-            onPressed: () {},
+            onPressed: () {
+              insertTour();
+            },
             backgroundColor: Color(0xFF001FAB),
             isExtended: _isFabExtended,
             label: _isFabExtended
@@ -1268,6 +1277,137 @@ class _NewTourPageState extends State<NewTourPage> {
         );
       },
     );
+  }
+
+  void insertTour() {
+    if (tour.startLocation == null ||
+        tour.startLocation.title == null ||
+        tour.startLocation.latlng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("لطفا مبدا را مشخص نمایید"),
+      ));
+    } else if (tour.destination == null ||
+        tour.destination.title == null ||
+        tour.destination.latlng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("لطفا مقصد را مشخص نمایید"),
+      ));
+    } else if (tour.categories.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("حداقل یک دسته بندی مشخص نمایید"),
+      ));
+    } else if (titleTextController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("عنوان را مشخص نمایید"),
+      ));
+    } else if (capasityTextController.text.trim().isEmpty ||
+        int.parse(capasityTextController.text.trim()) == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("ظرفیت را مشخص نمایید"),
+      ));
+    } else if (base64Images.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("حداقل یک تصویر اضافه کنید"),
+      ));
+    } else if (tour.date == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("لطفا تاریخ حرکت را مشخص نمایید"),
+      ));
+    } else if ((durationDaysTextController.text.trim().isEmpty ||
+            int.parse(durationDaysTextController.text.trim()) == 0) &&
+        (durationHoursTextController.text.trim().isEmpty ||
+            int.parse(durationHoursTextController.text.trim()) == 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("مدت زمان را مشخص نمایید"),
+      ));
+    } else if (leaderNameTextController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("نام لیدر را مشخص نمایید"),
+      ));
+    } else if (priceTextController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("قیمت تور را مشخص نمایید"),
+      ));
+    } else {
+      String cats = '';
+      for (Category c in tour.categories) {
+        cats += c.name + ',';
+      }
+      post(
+        Uri.parse("http://irangard.freehost.io/addTour.php"),
+        body: {
+          'title': titleTextController.text.trim(),
+          'subtitle': subtitleTextController.text.trim(),
+          'startLocation': tour.startLocation.title +
+              'lt' +
+              tour.startLocation.latlng.latitude.toString() +
+              'lt' +
+              tour.startLocation.latlng.longitude.toString(),
+          'destination': tour.destination.title +
+              'lt' +
+              tour.destination.latlng.latitude.toString() +
+              'lt' +
+              tour.destination.latlng.longitude.toString(),
+          'categories': cats,
+          'capasity': capasityTextController.text.trim(),
+          'registered': '0',
+          'price': priceTextController.text.trim(),
+          'channelName': tour.channelName,
+          'isRegistered': '0',
+          'necessaryStuff': necessaryStuffTextController.text.trim(),
+          'lastEvent': 'تور ایجاد شد',
+          'date': tour.date.year.toString() +
+              ' ' +
+              tour.date.month.toString() +
+              ' ' +
+              tour.date.day.toString() +
+              ' ' +
+              tour.date.hour.toString() +
+              ' ' +
+              tour.date.minute.toString(),
+          'lastEventTime': Jalali.now().year.toString() +
+              ' ' +
+              Jalali.now().month.toString() +
+              ' ' +
+              Jalali.now().day.toString() +
+              ' ' +
+              Jalali.now().hour.toString() +
+              ' ' +
+              Jalali.now().minute.toString(),
+          'numberOfNewEvents': '0',
+          'duration': tour.duration.day.toString() +
+              ' ' +
+              tour.duration.hour.toString(),
+        },
+      ).then((response) {
+        print(response.statusCode);
+        String res = utf8.decode(response.bodyBytes);
+        print(res);
+        uploadImages(res);
+      });
+      Navigator.of(context).pop(tour);
+    }
+  }
+
+  void uploadImages(String id) {
+    String imgs = '';
+    for (int i = 0; i < base64Images.length; i++) {
+      String imgName = id + '_tour_img_$i.jpeg';
+      imgs += imgName + ',';
+      post(Uri.parse("http://irangard.freehost.io/addImage.php"), body: {
+        "image": base64Images[i],
+        "name": imgName,
+      }).then((result) {
+        print(
+            imgName + ' # ' + result.statusCode.toString() + ':' + result.body);
+      });
+    }
+    post(Uri.parse("http://irangard.freehost.io/setImageNames.php"), body: {
+      "images": imgs,
+      "id": id,
+    }).then((result) {
+      print(result.statusCode.toString() + ':' + result.body);
+    });
   }
 }
 

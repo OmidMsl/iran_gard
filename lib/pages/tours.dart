@@ -41,7 +41,7 @@ List<Story> stories = [
       storyType: StoryType.story),
 ];
 
-List<Tour> registeredTours = [
+/*List<Tour> registeredTours = [
   Tour(
       title: 'تور کوه نوردی آبشار شوی',
       destination: LocationWithTitle(title: 'آبشار شوی'),
@@ -64,7 +64,7 @@ List<Tour> registeredTours = [
       ],
       date: Jalali(1400, 7, 25, 12, 30),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 12),
       isRegistered: true,
       price: 200000,
@@ -91,7 +91,7 @@ List<Tour> registeredTours = [
       ],
       date: Jalali(1400, 7, 20, 12, 30),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 8),
       isRegistered: false,
       leaderName: 'رضا',
@@ -122,7 +122,7 @@ List<Tour> registeredTours = [
       ],
       date: Jalali(1400, 8, 25, 17, 00),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 12),
       isRegistered: true,
       price: 200000,
@@ -149,7 +149,7 @@ List<Tour> registeredTours = [
       ],
       date: Jalali(1400, 9, 1, 6, 30),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 8),
       isRegistered: false,
       leaderName: 'رضا',
@@ -183,7 +183,7 @@ List<Tour> completedTours = [
       ],
       date: Jalali(1400, 7, 1, 6, 30),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 12),
       isRegistered: true,
       price: 200000,
@@ -210,7 +210,7 @@ List<Tour> completedTours = [
       ],
       date: Jalali(1400, 10, 1, 6, 30),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 8),
       isRegistered: false,
       leaderName: 'رضا',
@@ -241,7 +241,7 @@ List<Tour> completedTours = [
       ],
       date: Jalali(1400, 9, 1, 7, 00),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 12),
       isRegistered: true,
       price: 200000,
@@ -268,7 +268,7 @@ List<Tour> completedTours = [
       ],
       date: Jalali(1400, 7, 16, 5, 00),
       channelName: 'dezful tourism',
-      channelImage: AssetImage('images/dezful_tourism.jpg'),
+      channelImage: Image.asset('images/dezful_tourism.jpg', fit: BoxFit.cover),
       duration: DayAndHour(hour: 8),
       isRegistered: false,
       leaderName: 'رضا',
@@ -277,19 +277,33 @@ List<Tour> completedTours = [
       lastEvent: 'رضا: سلام',
       lastEventTime: Jalali(1400, 2, 25, 14, 43),
       numberOfNewEvents: 0),
-];
+];*/
 
 class ToursPage extends StatefulWidget {
+  List<Tour> tours;
+  ToursPage(this.tours);
   @override
   _ToursPageState createState() => _ToursPageState();
 }
 
-int showingRTNum = registeredTours.length > 2 ? 2 : registeredTours.length;
-int showingCTNum = registeredTours.length > 2 ? 2 : registeredTours.length;
+int showingRTNum;
+int showingCTNum;
+List<Tour> registeredTours = [], completedTours = [];
 
 class _ToursPageState extends State<ToursPage> {
   @override
   Widget build(BuildContext context) {
+    registeredTours = [];
+    completedTours = [];
+    for (Tour t in widget.tours) {
+      if (t.isRegistered && t.date.isBefore(Jalali.now())) {
+        completedTours.add(t);
+      } else if (t.isRegistered) {
+        registeredTours.add(t);
+      }
+    }
+    showingRTNum = registeredTours.length > 2 ? 2 : registeredTours.length;
+    showingCTNum = completedTours.length > 2 ? 2 : completedTours.length;
     Size pageSize = MediaQuery.of(context).size;
     return SingleChildScrollView(
       child: Column(

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:iran_gard/iran_gard_icons_icons.dart';
 import 'package:iran_gard/models/category.dart';
 import 'package:iran_gard/models/tour.dart';
@@ -12,11 +11,15 @@ import 'package:iran_gard/pages/tour_details.dart';
 import 'package:persian_datetime_picker/persian_datetime_picker.dart';
 
 class HomePage extends StatefulWidget {
+
+  List<Tour> tours;
+  HomePage(this.tours);
+
   @override
   _HomePageState createState() => _HomePageState();
 }
 
-List<Tour> tours = [
+/*List<Tour> tours = [
   Tour(
       title: 'تور کوه نوردی آبشار شوی',
       destination: LocationWithTitle(title: 'آبشار شوی'),
@@ -125,7 +128,7 @@ List<Tour> tours = [
     necessaryStuff: 'لباس شنا',
     leaderName: 'قلی',
   ),
-];
+];*/
 
 class _HomePageState extends State<HomePage> {
   // advertising banners
@@ -147,15 +150,6 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-
-    for (int i = 0; i < tours.length; i++) {
-      if (tours[i].isRegistered) {
-        Jalali j = difference(Jalali.now(), tours[i].date);
-        if (j.year == 1 && j.month == 1 && j.day <= 8) {
-          alarmIndexes.add(i);
-        }
-      }
-    }
     bannerController = PageController(initialPage: showingAd);
     Timer.periodic(Duration(seconds: 5), (Timer t) {
       int pn = 0;
@@ -173,6 +167,7 @@ class _HomePageState extends State<HomePage> {
               duration: Duration(milliseconds: 500), curve: Curves.easeInOut);
       }
     });
+    findAlarms();
   }
 
   List<Category> selectedCategories = [];
@@ -182,9 +177,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     categoryTours = [];
     if (selectedCategories.isEmpty)
-      categoryTours.addAll(tours);
+      categoryTours.addAll(widget.tours);
     else
-      for (Tour t in tours) {
+      for (Tour t in widget.tours) {
         for (Category c in selectedCategories) {
           if (t.categories.contains(c)) {
             categoryTours.add(t);
@@ -208,7 +203,7 @@ class _HomePageState extends State<HomePage> {
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(
                             builder: (context) => TourDetailsPage(
-                                tours: [tours[alarmIndexes[index]]],
+                                tours: [widget.tours[alarmIndexes[index]]],
                                 selectedTour: 0)));
                       },
                       child: Card(
@@ -229,9 +224,9 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               Text(
                                 Tour.timeUntil(
-                                        tours[alarmIndexes[index]].date) +
+                                        widget.tours[alarmIndexes[index]].date) +
                                     ' مانده تا ' +
-                                    tours[alarmIndexes[index]].title,
+                                    widget.tours[alarmIndexes[index]].title,
                                 textDirection: TextDirection.rtl,
                                 style: TextStyle(
                                     color: Colors.red[900], fontFamily: 'Sans'),
@@ -309,7 +304,7 @@ class _HomePageState extends State<HomePage> {
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
                                 builder: (context) =>
-                                    SearchWithGPSPage(tours)));
+                                    SearchWithGPSPage(widget.tours)));
                           },
                           child: Container(
                             width: (pageSize.width - 12) / 3,
@@ -356,7 +351,7 @@ class _HomePageState extends State<HomePage> {
                         InkWell(
                           onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => SearchOnMapPage(tours)));
+                                builder: (context) => SearchOnMapPage(widget.tours)));
                           },
                           child: Container(
                             width: (pageSize.width - 12) / 3,
@@ -524,16 +519,16 @@ class _HomePageState extends State<HomePage> {
                     onTap: () {
                       Navigator.of(context).push(MaterialPageRoute(
                           builder: (context) => TourDetailsPage(
-                                tours: tours,
+                                tours: widget.tours,
                                 selectedTour: index,
                               )));
                     },
                     child: Container(
                       decoration: BoxDecoration(
-                          color: tour.categories[0].color,
+                          color: tour.categories.isEmpty? Colors.green : tour.categories[0].color,
                           borderRadius: BorderRadius.circular(8.0),
                           border: Border.all(
-                              width: 1.2, color: tour.categories[0].color)),
+                              width: 1.2, color: tour.categories.isEmpty? Colors.green : tour.categories[0].color)),
                       child: Column(
                         children: [
                           Container(
@@ -547,7 +542,7 @@ class _HomePageState extends State<HomePage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8.0),
-                                child: tour.images[0],
+                                child: tour.images.isEmpty? Image.asset('images/loading-screen.gif', fit: BoxFit.cover) : tour.images[0],
                               ),
                             ),
                           ),
@@ -636,6 +631,21 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+  
+
+  void findAlarms(){
+    alarmIndexes = [];
+    for (int i = 0; i < widget.tours.length; i++) {
+      if (widget.tours[i].isRegistered) {
+        Jalali j = difference(Jalali.now(), widget.tours[i].date);
+        if (j.year == 1 && j.month == 1 && j.day <= 8) {
+          setState(() {
+            alarmIndexes.add(i);
+          });
+        }
+      }
+    }
   }
 }
 

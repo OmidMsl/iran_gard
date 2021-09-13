@@ -50,6 +50,7 @@ class _TourDetailsPageState extends State<TourDetailsPage> {
     });
     WidgetsBinding.instance
         .addPostFrameCallback((_) => afterBuildFunction(context));
+    downloadOtherImages();
   }
 
   @override
@@ -186,13 +187,15 @@ class _TourDetailsPageState extends State<TourDetailsPage> {
                                             Container(
                                               width: 40,
                                               height: 40,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                image: DecorationImage(
-                                                  image: tour.channelImage,
-                                                  fit: BoxFit.cover,
-                                                ),
-                                              ),
+                                              child: Card(
+                                      shape: CircleBorder(),
+                                      child: ClipRRect(
+                                        borderRadius:
+                                            BorderRadius.circular(50.0),
+                                        child: tour.channelImage==null? Image.asset('images/loading-screen.gif', fit: BoxFit.cover) : tour.channelImage,
+                                      ),
+                                    ),
+                                              
                                             ),
                                             SizedBox(
                                               width: 8.0,
@@ -229,7 +232,7 @@ class _TourDetailsPageState extends State<TourDetailsPage> {
                                                       width: 4.0,
                                                     ),
                                                     Text(
-                                                      tour.leaderName +
+                                                      (tour.leaderName==null? '' : tour.leaderName) +
                                                           ' :لیدر',
                                                       textDirection:
                                                           TextDirection.rtl,
@@ -717,6 +720,23 @@ class _TourDetailsPageState extends State<TourDetailsPage> {
         ),
       ),
     );
+  }
+
+  void downloadOtherImages() async{
+    for (Tour t in widget.tours){
+      if (t.channelImage==null && t.channelImageName!=null){
+        setState(() {
+          t.channelImage = Image.network('http://irangard.freehost.io/pics/' + t.channelImageName, fit: BoxFit.cover);
+        });
+      }
+      if (t.images.length==1 && t.imgNames.length>1){
+        for (int i=1 ; i<t.imgNames.length ; i++){
+          setState(() {
+          t.images.add(Image.network('http://irangard.freehost.io/pics/' + t.imgNames[i], fit: BoxFit.cover));
+        });
+        }
+      }
+    }
   }
 
   void afterBuildFunction(BuildContext c) {

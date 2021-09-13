@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:iran_gard/iran_gard_icons_icons.dart';
 import 'package:iran_gard/models/tour.dart';
-import 'package:iran_gard/pages/home.dart';
 
 class SearchPage extends StatefulWidget {
+
+  List<Tour> tours;
+  List<User> users;
+  SearchPage(this.tours, this.users);
+
   @override
   _SearchPageState createState() => _SearchPageState();
 }
 
-List<User> users = [
+/*List<User> users = [
   User(
     name: 'محمدرضا عباسی',
     id: 'mmdRza',
@@ -50,7 +54,7 @@ List<User> users = [
     id: 'dvd_zrf',
     isLeader: false,
   ),
-];
+];*/
 
 List<SearchItem> searchItems = [];
 int numOfTours = 0, numOfUsers = 0, numOfLeaders = 0, numOfGroups = 0;
@@ -73,7 +77,7 @@ class _SearchPageState extends State<SearchPage> {
       numOfLeaders = 0;
       numOfGroups = 0;
       if (searchText.isNotEmpty) {
-        for (User u in users) {
+        for (User u in widget.users) {
           if (u.name.contains(searchText) || u.id.contains(searchText)) {
             searchItems.add(SearchItem.fromUser(u));
             if (u.isLeader)
@@ -82,7 +86,7 @@ class _SearchPageState extends State<SearchPage> {
               numOfUsers++;
           }
         }
-        for (Tour t in tours) {
+        for (Tour t in widget.tours) {
           if (t.title.contains(searchText))
             searchItems.add(SearchItem.fromTour(t));
           numOfTours++;
